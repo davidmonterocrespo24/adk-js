@@ -23,7 +23,8 @@
     "docs:generate": "typedoc",
     "docs:serve": "http-server api-reference/typescript",
     "docs:check": "typedoc --emit none --treatWarningsAsErrors",
-    "test": "vitest"
+    "test": "vitest",
+    "test:integration": "vitest tests/integration/agents/**"
   },
   "workspaces": [
     "core",

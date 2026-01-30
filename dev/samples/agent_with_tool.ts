@@ -5,6 +5,11 @@
  */
 import {FunctionTool, LlmAgent} from '@google/adk';
 import {z} from 'zod';
+import {
+  AgentEventCapturePlugin,
+  ModelEventCapturePlugin,
+} from './event_capture_plugin.ts';
+import {run} from './runner.ts';
 
 interface ToolResult {
   status: 'success' | 'error';
@@ -93,3 +98,23 @@ export const rootAgent = new LlmAgent({
     'You are a helpful agent who can answer user questions about the time and weather in a city.',
   tools: [getWeatherTool, getCurrentTimeTool],
 });
+
+async function main() {
+  const modelEventCapturePlugin = new ModelEventCapturePlugin(
+    'model-event-capture',
+  );
+  const eventsCapturePlugin = new AgentEventCapturePlugin('events-capture');
+  await run(rootAgent, 'What is the weather in New York?', [
+    modelEventCapturePlugin,
+    eventsCapturePlugin,
+  ]);
+  await run(rootAgent, 'And what is the time in New York?', [
+    modelEventCapturePlugin,
+    eventsCapturePlugin,
+  ]);
+
+  await modelEventCapturePlugin.dump(`${rootAgent.name}_model_responses.json`);
+  await eventsCapturePlugin.dump(`${rootAgent.name}_agent_events.json`);
+}
+
+main().catch(console.error);
