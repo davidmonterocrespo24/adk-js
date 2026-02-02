@@ -17,6 +17,7 @@ import * as os from 'os';
 import * as path from 'path';
 import {AdkWebServer} from '../server/adk_web_server.js';
 import {getTempDir} from '../utils/file_utils.js';
+import {ConformanceTestMode, runTest} from './cli_comformance.js';
 import {createAgent} from './cli_create.js';
 import {deployToCloudRun} from './cli_deploy.js';
 import {runAgent} from './cli_run.js';
@@ -293,6 +294,37 @@ DEPLOY_COMMAND.command('cloud_run')
       allowOrigins: options['allow_origins'],
       extraGcloudArgs,
       artifactServiceUri: options['artifact_service_uri'],
+    });
+  });
+
+const CONFORMANCE_COMMAND = program
+  .command('conformance')
+  .description('Conformance tests');
+
+const CONFORMANCE_TEST_DIR = new Argument(
+  '[test_dir]',
+  'Directory of conformance tests',
+).default(process.cwd());
+
+CONFORMANCE_COMMAND.command('test')
+  .addArgument(CONFORMANCE_TEST_DIR)
+  .option('--mode <mode>', 'Mode to run the tests in', 'replay')
+  .option(
+    '--backend-url <string>',
+    'Backend URL to run the tests against',
+    'http://localhost:8000',
+  )
+  .option(
+    '--user-id <string>',
+    'User ID to use for the tests',
+    'adk_conformance_test_user',
+  )
+  .action((testPath: string, options: Record<string, string>) => {
+    runTest({
+      testPaths: [getAbsolutePath(testPath)],
+      mode: options['mode'] as ConformanceTestMode,
+      backendUrl: options['backend-url'],
+      userId: options['user-id'],
     });
   });
 

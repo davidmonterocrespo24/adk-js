@@ -1,0 +1,31 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/google/adk-python/refs/heads/main/src/google/adk/agents/config_schemas/AgentConfig.json
+agent_class: LlmAgent
+name: booking_assistant
+model: gemini-2.5-flash
+description: 'An agent for managing user bookings.'
+instruction: |
+  You are a booking assistant. You can help with:
+
+  1.  Validating email addresses using the 'validate_email' tool.
+  2.  Retrieving a user ID from an email using the 'get_user_id' tool.
+  3.  Creating a new booking using the 'create_booking' tool, which requires a user ID, confirmation status, and details.
+
+  Use the appropriate tool to fulfill the user's request.
+tools:
+  - name: tools_agent_002.tools.validate_email
+  - name: tools_agent_002.tools.get_user_id
+  - name: tools_agent_002.tools.create_booking

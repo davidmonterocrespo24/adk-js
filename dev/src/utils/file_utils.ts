@@ -12,7 +12,20 @@ import * as path from 'node:path';
 export async function isFolderExists(folderPath: string): Promise<boolean> {
   try {
     await fs.access(folderPath);
-    return true;
+    const stat = await fs.stat(folderPath);
+
+    return stat.isDirectory();
+  } catch (_e: unknown) {
+    return false;
+  }
+}
+
+export async function isFileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    const stat = await fs.stat(filePath);
+
+    return stat.isFile();
   } catch (_e: unknown) {
     return false;
   }
@@ -52,6 +65,16 @@ export async function isFile(filePath: string): Promise<boolean> {
   try {
     const stat = await fs.stat(filePath);
     return stat.isFile();
+  } catch (_e: unknown) {
+    return false;
+  }
+}
+
+/** Check if the given path is a directory. */
+export async function isDirectory(filePath: string): Promise<boolean> {
+  try {
+    const stat = await fs.stat(filePath);
+    return stat.isDirectory();
   } catch (_e: unknown) {
     return false;
   }
