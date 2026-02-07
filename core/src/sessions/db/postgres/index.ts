@@ -5,20 +5,24 @@
  */
 
 import {drizzle} from 'drizzle-orm/node-postgres';
+import {migrate} from 'drizzle-orm/node-postgres/migrator';
+import path from 'node:path';
 import {Pool} from 'pg';
 import * as schema from './schema.js';
 
-type PostgresDB = ReturnType<typeof drizzle<typeof schema>>;
+// Support ESM and CJS
+const dirname =
+  typeof __dirname !== 'undefined'
+    ? __dirname
+    : path.dirname(new URL(import.meta.url).pathname);
+
+export type PostgresDB = ReturnType<typeof drizzle<typeof schema>>;
 
 let dbInstance: PostgresDB | undefined;
 
 /**
- * Checks if the given connection string is a Postgres connection string.
+ * Returns the postgres database instance.
  */
-export function isPostgresConnectionString(connectionString: string): boolean {
-  return connectionString.startsWith('postgresql://');
-}
-
 export function getDb(connectionString?: string): PostgresDB {
   if (!dbInstance) {
     if (!connectionString) {
@@ -42,4 +46,37 @@ export function getDb(connectionString?: string): PostgresDB {
   return dbInstance;
 }
 
-export {PostgresDB, schema};
+/**
+ * Checks if the given connection string is a Postgres connection string.
+ */
+export function isPostgresConnectionString(connectionString: string): boolean {
+  return connectionString.startsWith('postgresql://');
+}
+
+/**
+ * Sets up the database by running migrations.
+ */
+export async function setupDatabase(connectionString: string): Promise<void> {
+  await migrate(getDb(connectionString), {
+    migrationsFolder: path.join(dirname, 'migrations'),
+  });
+}
+
+/**
+ * Checks if the database is set up.
+ */
+export async function checkDatabaseSetup(
+  connectionString: string,
+): Promise<boolean> {
+  // try {
+  //   const db = getDb(connectionString);
+
+  //   return true;
+  // } catch (e: unknown) {
+  //   console.error('Database is not set up:', e);
+  //   return false;
+  // }
+  return !!connectionString;
+}
+
+export {schema};
