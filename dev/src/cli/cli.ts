@@ -14,7 +14,6 @@ import {
 } from '@google/adk';
 import {Argument, Command, Option} from 'commander';
 import dotenv from 'dotenv';
-import * as os from 'os';
 import * as path from 'path';
 import {runIntegrationTests} from '../integration/run_integration_tests.js';
 import {AdkApiServer} from '../server/adk_api_server.js';
@@ -100,7 +99,7 @@ const AGENT_DIR_ARGUMENT = new Argument(
 const HOST_OPTION = new Option(
   '-h, --host <string>',
   'Optional. The binding host of the server',
-).default(os.hostname());
+).default('localhost');
 const PORT_OPTION = new Option(
   '-p, --port <number>',
   'Optional. The port of the server',
@@ -136,6 +135,10 @@ const BUNDLE_AGENT_FILE = new Option(
   'Optional. Whether to compile ts agent file to js before execution',
 ).default(true);
 const AGENT_FILE_MODULE_TYPE = new Option('--file_type <string>', 'Optional. ');
+const A2A_OPTION = new Option(
+  '--a2a [boolean]',
+  'Optional. Whether to enable A2A for web/api server. Default: false',
+).default(false);
 AGENT_FILE_MODULE_TYPE.argChoices = [FileModuleType.CJS, FileModuleType.ESM];
 
 /**
@@ -166,6 +169,7 @@ export function createProgram(): Command {
     .addOption(COMPILE_AGENT_FILE)
     .addOption(BUNDLE_AGENT_FILE)
     .addOption(AGENT_FILE_MODULE_TYPE)
+    .addOption(A2A_OPTION)
     .action(async (agentsDir: string, options: Record<string, string>) => {
       try {
         setLogLevel(getLogLevelFromOptions(options));
@@ -203,6 +207,7 @@ export function createProgram(): Command {
     .addOption(COMPILE_AGENT_FILE)
     .addOption(BUNDLE_AGENT_FILE)
     .addOption(AGENT_FILE_MODULE_TYPE)
+    .addOption(A2A_OPTION)
     .action(async (agentsDir: string, options: Record<string, string>) => {
       try {
         setLogLevel(getLogLevelFromOptions(options));
@@ -215,8 +220,9 @@ export function createProgram(): Command {
           allowOrigins: options['allow_origins'],
           sessionService: getSessionServiceFromOptions(options),
           artifactService: getArtifactServiceFromOptions(options),
-          otelToCloud: options['otel_to_cloud'] ? true : false,
+          otelToCloud: getBoolean(options['otel_to_cloud']),
           agentFileLoadOptions: getAgentFileOptions(options),
+          a2a: getBoolean(options['a2a']),
         });
         await server.start();
       } catch (e: unknown) {
