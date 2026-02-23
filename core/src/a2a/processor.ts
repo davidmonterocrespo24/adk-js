@@ -14,7 +14,7 @@ import {RequestContext} from '@a2a-js/sdk/server';
 import {Event} from '../events/event.js';
 import {EventActions} from '../events/event_actions.js';
 import {InputRequiredProcessor} from './input_required_processor.js';
-import {toA2AParts} from './parts.js';
+import {toA2AParts} from './part_converter_utils.js';
 
 /**
  * Metadata key for partial artifacts.

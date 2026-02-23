@@ -22,10 +22,10 @@ import {Runner, RunnerConfig} from '../runner/runner.js';
 import {BaseSessionService} from '../sessions/base_session_service.js';
 import {Session} from '../sessions/session.js';
 import {logger} from '../utils/logger.js';
-import {toGenAIParts} from './events.js';
 import {ExecutorContext, createExecutorContext} from './executor_context.js';
 import {handleInputRequired} from './input_required_processor.js';
 import {toInvocationMeta} from './metadata.js';
+import {toGenAIParts} from './part_converter_utils.js';
 import {EventProcessor} from './processor.js';
 
 export type A2AEvent = TaskStatusUpdateEvent | TaskArtifactUpdateEvent;

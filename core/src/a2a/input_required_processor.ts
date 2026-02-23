@@ -10,8 +10,7 @@ import {Content, Part} from '@google/genai';
 import {cloneDeep} from 'lodash-es';
 import {Event} from '../events/event.js';
 import {randomUUID} from '../utils/env_aware_utils.js';
-import {toGenAIParts} from './events.js';
-import {toA2AParts} from './parts.js';
+import {toA2AParts, toGenAIParts} from './part_converter_utils.js';
 
 /**
  * InputRequiredProcessor handles long-running function tool calls by accumulating them.
