@@ -4,22 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {Part as GenAIPart} from '@google/genai';
+import {Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {Content as GenAIContent, Part as GenAIPart} from '@google/genai';
 import {Event as AdkEvent} from '../events/event.js';
 import {createEventActions} from '../events/event_actions.js';
 import {
+  createInputMissingErrorEvent,
   createTaskCompletedEvent,
   createTaskFailedEvent,
   createTaskInputRequiredEvent,
+  isInputRequiredTaskStatusUpdateEvent,
 } from './a2a_event.js';
 import {ExecutorContext} from './executor_context.js';
 import {
   getA2AEventMetadata,
   getA2AEventMetadataFromActions,
 } from './metadata_converter_utils.js';
-import {toA2AParts} from './part_converter_utils.js';
+import {toA2AParts, toGenAIParts} from './part_converter_utils.js';
 
+/**
+ * Processes a list of ADK events and determines the final task status update event.
+ * If any of the ADK events contain an error, a TaskFailedEvent is returned immediately.
+ * If there are no errors, it checks for any input required events. If found, it returns a TaskInputRequiredEvent.
+ * If there are no input required events, it returns a TaskCompletedEvent.
+ *
+ * @param adkEvents - The list of ADK events to process.
+ * @param context - The executor context containing relevant information for processing the events.
+ * @returns A TaskStatusUpdateEvent representing the final status of the task after processing the ADK events.
+ */
 export function getFinalTaskStatusUpdate(
   adkEvents: AdkEvent[],
   context: ExecutorContext,
@@ -136,102 +148,51 @@ function getLongRunnningFunctionCallId(
   return;
 }
 
-// /**
-//  * EventProcessor processes ADK events and converts them to A2A events.
-//  */
-// export class EventProcessor {
-//   private readonly inputRequiredProcessor: InputRequiredProcessor;
-//   private terminalActions = createEventActions();
-//   private failedEvent?: TaskStatusUpdateEvent;
-//   private agentPartialArtifactIdsMap: Record<string, string> = {};
+/**
+ * Handles input required task status update events.
+ */
+export function handleInputRequired(
+  task: Task,
+  userRequest: GenAIContent,
+): TaskStatusUpdateEvent | undefined {
+  if (
+    !task ||
+    !isInputRequiredTaskStatusUpdateEvent(task) ||
+    !task.status.message
+  ) {
+    return undefined;
+  }
 
-//   constructor(private readonly context: ExecutorContext) {
-//     this.inputRequiredProcessor = new InputRequiredProcessor(
-//       context.requestContext,
-//     );
-//   }
+  const statusMsg = task.status.message;
+  const taskParts = toGenAIParts(statusMsg.parts);
 
-//   /**
-//    * Processes an ADK event and returns an A2A TaskArtifactUpdateEvent if applicable.
-//    */
-//   process(adkEvent?: AdkEvent): TaskArtifactUpdateEvent | undefined {
-//     if (!adkEvent) {
-//       return undefined;
-//     }
+  for (const taskPart of taskParts) {
+    const functionCallId = taskPart.functionCall?.id;
+    if (!functionCallId) {
+      continue;
+    }
 
-//     this.updateTerminalActions(adkEvent);
+    const hasMatchingResponse = (userRequest?.parts || []).some(
+      (p) => p.functionResponse?.id === functionCallId,
+    );
 
-//     if (adkEvent.errorCode || adkEvent.errorMessage) {
-//       if (!this.failedEvent) {
-//         this.failedEvent = createTaskFailedEvent({
-//           taskId: this.context.requestContext.taskId,
-//           contextId: this.context.requestContext.contextId,
-//           error: new Error(adkEvent.errorMessage || adkEvent.errorCode),
-//           metadata: getA2AEventMetadataFromActions(this.terminalActions),
-//         });
-//       }
-//     }
+    if (!hasMatchingResponse) {
+      return createInputMissingErrorEvent({
+        taskId: task.id,
+        contextId: task.contextId,
+        parts: [
+          ...statusMsg.parts.filter((p) => !p.metadata?.validation_error),
+          {
+            kind: 'text',
+            text: `No input provided for function call id ${functionCallId}`,
+            metadata: {
+              validation_error: true,
+            },
+          },
+        ],
+      });
+    }
+  }
 
-//     this.inputRequiredProcessor.process(adkEvent);
-
-//     const parts = toA2AParts(adkEvent.content?.parts);
-//     if (parts.length === 0) {
-//       return undefined;
-//     }
-
-//     const artifactId =
-//       this.agentPartialArtifactIdsMap[adkEvent.author!] || randomUUID();
-
-//     const a2aEvent = createTaskArtifactUpdateEvent({
-//       taskId: this.context.requestContext.taskId,
-//       contextId: this.context.requestContext.contextId,
-//       artifactId,
-//       parts,
-//       metadata: getA2AEventMetadata(adkEvent, {
-//         appName: this.context.agentName,
-//         userId: this.context.userId,
-//         sessionId: this.context.sessionId,
-//       }),
-//       append: adkEvent.partial,
-//       lastChunk: !adkEvent.partial,
-//     });
-
-//     if (adkEvent.partial) {
-//       this.agentPartialArtifactIdsMap[adkEvent.author!] = artifactId;
-//     } else {
-//       delete this.agentPartialArtifactIdsMap[adkEvent.author!];
-//     }
-
-//     return a2aEvent;
-//   }
-
-//   makeFinalStatusUpdate(): TaskStatusUpdateEvent {
-//     if (this.failedEvent) {
-//       return {
-//         ...this.failedEvent,
-//         metadata: getA2AEventMetadataFromActions(this.terminalActions),
-//       };
-//     }
-
-//     if (this.inputRequiredProcessor.event) {
-//       return {
-//         ...this.inputRequiredProcessor.event,
-//         metadata: getA2AEventMetadataFromActions(this.terminalActions),
-//       };
-//     }
-
-//     return createTaskCompletedEvent({
-//       taskId: this.context.requestContext.taskId,
-//       contextId: this.context.requestContext.contextId,
-//       metadata: getA2AEventMetadataFromActions(this.terminalActions),
-//     });
-//   }
-
-//   private updateTerminalActions(event: AdkEvent) {
-//     this.terminalActions.escalate =
-//       this.terminalActions.escalate || event.actions?.escalate;
-//     if (event.actions?.transferToAgent) {
-//       this.terminalActions.transferToAgent = event.actions.transferToAgent;
-//     }
-//   }
-// }
+  return undefined;
+}

@@ -23,9 +23,11 @@ import {
   createTaskFailedEvent,
   createTaskWorkingEvent,
 } from './a2a_event.js';
-import {getFinalTaskStatusUpdate} from './event_processor.js';
+import {
+  getFinalTaskStatusUpdate,
+  handleInputRequired,
+} from './event_processor.js';
 import {createExecutorContext, ExecutorContext} from './executor_context.js';
-import {handleInputRequired} from './input_required_processor.js';
 import {
   getA2AEventMetadata,
   getA2ASessionMetadata,
