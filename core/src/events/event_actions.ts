@@ -59,6 +59,12 @@ export interface EventActions {
    * call id.
    */
   requestedToolConfirmations: {[key: string]: ToolConfirmation};
+
+  /**
+   * The human-readable reason the conversation was terminated by a
+   * TerminationCondition. Only set on synthetic termination events.
+   */
+  terminationReason?: string;
 }
 
 /**

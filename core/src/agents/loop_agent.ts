@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Event} from '../events/event.js';
+import {createEvent, Event} from '../events/event.js';
+import {createEventActions} from '../events/event_actions.js';
+import {TerminationCondition} from '../termination/termination_condition.js';
 
 import {BaseAgent, BaseAgentConfig} from './base_agent.js';
 import {InvocationContext} from './invocation_context.js';
@@ -19,6 +21,28 @@ export interface LoopAgentConfig extends BaseAgentConfig {
    * If not provided, the loop agent will run indefinitely.
    */
   maxIterations?: number;
+
+  /**
+   * An optional termination condition that controls when the loop stops.
+   *
+   * The condition is evaluated after each event emitted by a sub-agent. When
+   * it fires, the loop yields a final event with `actions.terminationReason`
+   * set and `actions.escalate` set to `true`, then stops.
+   *
+   * The condition is automatically reset at the start of each `runAsync()`
+   * call, so the same instance can be reused across multiple runs.
+   *
+   * @example
+   * ```typescript
+   * const agent = new LoopAgent({
+   *   name: 'my_loop',
+   *   subAgents: [...],
+   *   terminationCondition: new MaxIterationsTermination(10)
+   *     .or(new TextMentionTermination('DONE')),
+   * });
+   * ```
+   */
+  terminationCondition?: TerminationCondition;
 }
 
 /**
@@ -54,15 +78,18 @@ export class LoopAgent extends BaseAgent {
   readonly [LOOP_AGENT_SIGNATURE_SYMBOL] = true;
 
   private readonly maxIterations: number;
+  private readonly terminationCondition?: TerminationCondition;
 
   constructor(config: LoopAgentConfig) {
     super(config);
     this.maxIterations = config.maxIterations ?? Number.MAX_SAFE_INTEGER;
+    this.terminationCondition = config.terminationCondition;
   }
 
   protected async *runAsyncImpl(
     context: InvocationContext,
   ): AsyncGenerator<Event, void, void> {
+    await this.terminationCondition?.reset();
     let iteration = 0;
 
     while (iteration < this.maxIterations) {
@@ -73,6 +100,22 @@ export class LoopAgent extends BaseAgent {
 
           if (event.actions.escalate) {
             shouldExit = true;
+            break;
+          }
+
+          if (this.terminationCondition) {
+            const result = await this.terminationCondition.check([event]);
+            if (result) {
+              yield createEvent({
+                invocationId: context.invocationId,
+                author: this.name,
+                actions: createEventActions({
+                  escalate: true,
+                  terminationReason: result.reason,
+                }),
+              });
+              return;
+            }
           }
         }
 

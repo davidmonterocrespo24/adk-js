@@ -154,6 +154,18 @@ export {InMemorySessionService} from './sessions/in_memory_session_service.js';
 export {createSession} from './sessions/session.js';
 export type {Session} from './sessions/session.js';
 export {State} from './sessions/state.js';
+export {ExternalTermination} from './termination/external_termination.js';
+export {FunctionCallTermination} from './termination/function_call_termination.js';
+export {MaxIterationsTermination} from './termination/max_iterations_termination.js';
+export {
+  AndTerminationCondition,
+  OrTerminationCondition,
+  TerminationCondition,
+} from './termination/termination_condition.js';
+export type {TerminationResult} from './termination/termination_condition.js';
+export {TextMentionTermination} from './termination/text_mention_termination.js';
+export {TimeoutTermination} from './termination/timeout_termination.js';
+export {TokenUsageTermination} from './termination/token_usage_termination.js';
 export {AgentTool, isAgentTool} from './tools/agent_tool.js';
 export type {AgentToolConfig} from './tools/agent_tool.js';
 export {BaseTool, isBaseTool} from './tools/base_tool.js';
