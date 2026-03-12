@@ -101,8 +101,7 @@ export class AndTerminationCondition extends TerminationCondition {
       return undefined;
     }
     // Forward to both children so each accumulates its own state.
-    await this.left.check(events);
-    await this.right.check(events);
+    await Promise.all([this.left.check(events), this.right.check(events)]);
 
     if (this.left.terminated && this.right.terminated) {
       this._terminated = true;
