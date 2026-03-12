@@ -77,8 +77,8 @@ export class LoopAgent extends BaseAgent {
    */
   readonly [LOOP_AGENT_SIGNATURE_SYMBOL] = true;
 
-  private readonly maxIterations: number;
-  private readonly terminationCondition?: TerminationCondition;
+  readonly maxIterations: number;
+  readonly terminationCondition?: TerminationCondition;
 
   constructor(config: LoopAgentConfig) {
     super(config);
