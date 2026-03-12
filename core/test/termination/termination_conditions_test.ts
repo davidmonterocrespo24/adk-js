@@ -82,9 +82,8 @@ function makeFunctionResponseEvent(functionName: string): Event {
     content: {
       role: 'tool',
       parts: [
-        createPartFromFunctionResponse({
-          name: functionName,
-          response: {result: 'ok'},
+        createPartFromFunctionResponse(functionName, functionName, {
+          result: 'ok',
         }),
       ],
     },
